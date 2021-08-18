@@ -1,42 +1,8 @@
 #include "uart.h"
 #include "mbox.h"
 #include "framebf.h"
-#define EOL 10
-#define SPACE 32
-#define HELP 0
-#define SETCOLOR 1
-#define CLS 2
-#define BRDREV 3
-#define SCRSIZE 5
-#define DRAW 6
-#define CLKRATE 7
-#define IFCONFIG 8
-#define FIRMREV 9
-#define UARTCLK 10
-#define INVALID -1
-
-unsigned int len(char *string) {
-  unsigned int i = 0;
-  while (*string++ != '\0')
-      ++i;
-  return i;
-}
-
-void concat(char *string, char a) {
-  unsigned int string_len = len(string);
-  string[string_len] = a;
-  string[string_len+1] = '\0';
-}
-
-int compare(char *string, char *command) {
-  for (int i=0; i < len(command); i++) {
-    if (string[i] != command[i]) {
-      return 0;
-    } 
-  }
-
-  return 1;
-}
+#include "printf.h"
+#include "mylib.h"
 
 void display_help(int command) {
   if (command == HELP) {
@@ -49,7 +15,7 @@ void display_help(int command) {
     uart_puts("\nclkrate    Get clock rate");
     uart_puts("\nifconfig   Get MAC address");
     uart_puts("\nfirmrev    Get firm revision");
-    uart_puts("\nuartclk    Get uart clock state");
+    uart_puts("\nuartclk    Get uart clock state\n");
   } else if (command == SETCOLOR) {
     uart_puts("\nsetcolor -t <text color> -b <background color>");
     uart_puts("\nSet text color, and/or background color of the console to one of the following color: BLACK, RED, GREEN, YELLOW, BLUE, PURPLE, CYAN, WHITE\n");
@@ -64,46 +30,23 @@ void display_help(int command) {
     uart_puts("\nSet screen size");
     uart_puts("\nMust have options to set physical screen size (-p) or virtual screen size (-v), or both (by default)\n");
   } else if (command == DRAW) {
-    uart_puts("draw");
-    uart_puts("Draw blocks of colorful squares");
+    uart_puts("\ndraw");
+    uart_puts("\nDraw blocks of colorful squares\n");
   } else if (command == CLKRATE){
-    uart_puts("clkrate");
-    uart_puts("Get the board clock rate");
+    uart_puts("\nclkrate");
+    uart_puts("\nGet the board clock rate\n");
   } else if (command == IFCONFIG) {
-    uart_puts("mac");
-    uart_puts("Get MAC address");
+    uart_puts("\nmac");
+    uart_puts("\nGet MAC address\n");
   } else if (command == FIRMREV) {
-    uart_puts("firmrev");
-    uart_puts("Get firm revision");
+    uart_puts("\nfirmrev");
+    uart_puts("\nGet firm revision\n");
   } else if (command == UARTCLK) {
-    uart_puts("uartclk");
-    uart_puts("Get uart clock state, either ON or OFF");
+    uart_puts("\nuartclk");
+    uart_puts("\nGet uart clock state, either ON or OFF\n");
   } else{
     uart_puts("\nCommand not found");
-    uart_puts("\nhelp <command-name> to displays help information on that command");
-  }
-}
-
-
-void split(char *string, char** holder) {
-    char *temp = string, *c = string;
-    holder[0] = temp;
-    int count = 1;
-    while (*c) {
-        if (*c == SPACE) {
-            *c = '\0'; 
-            temp = ++c;
-            holder[count] = temp;
-            count++;
-        } else c++;
-    }   
-}
-
-void empty_string_array(char** string_array) {
-  int count = 0; 
-  while (string_array[count] != 0) {
-    string_array[count] = 0;
-    count++;
+    uart_puts("\nhelp <command-name> to displays help information on that command\n");
   }
 }
 
@@ -191,8 +134,18 @@ void handle_help(char**splitted_string) {
         display_help(BRDREV);
       } else if (compare(splitted_string[1],"scrsize")) {
         display_help(SCRSIZE);
+      } else if (compare(splitted_string[1],"draw")) {
+        display_help(DRAW);  
+      } else if (compare(splitted_string[1],"clkrate")) {
+        display_help(CLKRATE);
+      } else if (compare(splitted_string[1],"ifconfig")) {
+        display_help(IFCONFIG);
+      } else if (compare(splitted_string[1],"firmrev")) {
+        display_help(FIRMREV);
+      } else if (compare(splitted_string[1],"uartclk")) {
+        display_help(UARTCLK);
       } else {
-        display_help(INVALID);  
+        display_help(INVALID);
       }
     } else {
       display_help(INVALID);
@@ -284,21 +237,6 @@ void handle_brdrev(char**splitted_string) {
   } else {
     display_help(INVALID);
   }
-}
-
-int atoi(char*str) {
-  int res = 0;
-
-  for (int i = 0; str[i] != '\0'; ++i) {
-     if (str[i]> '9' || str[i]<'0') {
-        uart_puts("Invalid number input");
-        return -1;
-     }
-     res = res*10 + str[i] - '0';
-  }
-
- // return result.
- return res;
 }
 
 void handle_scrsize(char** splitted_string) {
@@ -485,6 +423,8 @@ void handle_uartclk(char** splitted_string) {
 }
 
 
+
+
 void main() {
   // set up serial console
   uart_init();
@@ -495,6 +435,9 @@ void main() {
 
   framebf_init(1024,768);
   display_banner();
+  printf("\nLucky day: %d%% %c %x %s %8.3f", 100, 'a', 15, "something", 3.14);
+  printf("\ntest: %d", 22);
+  printf("\nTEST: %s", "hmm");
   uart_puts("\n~/");
   // echo everything back
   while (1) {
@@ -537,8 +480,16 @@ void main() {
         concat(string, c);
         space_flag = 1;
       }
+    } else if (c == BACKSPACE) {
+      if (string[0] != '\0') {
+        uart_sendc(BACKSPACE);
+        uart_sendc(SPACE);
+        uart_sendc(BACKSPACE);
+        string[len(string)-1] = '\0';
+      }
     }
-    if (c != EOL) {
+
+    if (c != EOL && c != BACKSPACE) {
       uart_sendc(c);
     }
   }
