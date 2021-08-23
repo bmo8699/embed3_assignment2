@@ -51,6 +51,7 @@ void printf(char *string,...) {
 				for (c = 28; c >= 0; c = c - 4) {
 					// Get highest 4-bit nibble
 					hex = (x >> c) & 0xF;
+					uart_sendc(hex);
 					// 0-9 => '0'-'9', 10-15 => 'A'-'F'
 					hex += (hex > 9) ? (- 10 + 'A') : '0';
 					temp_buffer[temp_index] = hex;

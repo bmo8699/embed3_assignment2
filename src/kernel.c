@@ -4,6 +4,12 @@
 #include "printf.h"
 #include "mylib.h"
 
+void dispaly_home() {
+  uart_puts("\x1b[36m");
+  uart_puts("\n~/");
+  uart_puts("\x1b[37m");
+}
+
 void display_help(int command) {
   if (command == HELP) {
     uart_puts("\nFor more information on a specific command, type help <command-name>");    
@@ -45,12 +51,13 @@ void display_help(int command) {
     uart_puts("\nuartclk");
     uart_puts("\nGet uart clock state, either ON or OFF\n");
   } else{
-    uart_puts("\nCommand not found");
+    uart_puts("\nInvalid command");
     uart_puts("\nhelp <command-name> to displays help information on that command\n");
   }
 }
 
 void display_banner() {
+  uart_puts("\x1b[35m");
   uart_puts("######## ######## ######## ########  #######  ##         #######    #####\n");
   uart_puts("##       ##       ##          ##    ##     ## ##    ##  ##     ##  ##   ##\n");
   uart_puts("##       ##       ##          ##           ## ##    ##  ##     ## ##     ##\n");
@@ -66,13 +73,16 @@ void display_banner() {
   uart_puts("##     ## ######### ##   ##   ##                ##     ##       ## \n");
   uart_puts("##     ## ##     ## ##    ##  ##                ##     ## ##    ##\n");
   uart_puts("########  ##     ## ##     ## ########           #######   ######\n");
+  uart_puts("\nDeveloped by Phan Quoc Binh - s3715271\n");
+  uart_puts("\x1b[37m");
+  dispaly_home();
 }
 
 void set_text_color(char* color) {
   if (compare(color, "black")) {
     uart_puts("\x1b[30m");
   } else if (compare(color, "red")) {
-    uart_puts("\x1b[34m");
+    uart_puts("\x1b[31m");
   } else if (compare(color, "green")) {
     uart_puts("\x1b[32m");
   } else if (compare(color, "yellow")) {
@@ -125,7 +135,7 @@ void handle_help(char**splitted_string) {
   if (splitted_string[1] == 0 || *splitted_string[1] == '\0') {
       display_help(HELP);
   } else {
-    if (splitted_string[2] == 0) {
+    if (splitted_string[2] == 0 || *splitted_string[2] == '\0') {
       if (compare(splitted_string[1],"setcolor")) {
         display_help(SETCOLOR);
       } else if (compare(splitted_string[1],"cls"))  {
@@ -244,20 +254,25 @@ void handle_scrsize(char** splitted_string) {
     display_help(INVALID);
   } else {
     if (compare(splitted_string[1],"-p")) {
-      if ((splitted_string[2] == 0 || *splitted_string[2] == '\0') && (splitted_string[3] == 0 || *splitted_string[3] == '\0')) {
+      if ((splitted_string[2] == 0 || *splitted_string[2] == '\0') || (splitted_string[3] == 0 || *splitted_string[3] == '\0')) {
         display_help(INVALID);
       } else {
         if (splitted_string[4] == 0 || *splitted_string[4] == '\0') {
-          if (atoi(splitted_string[2]) > 0 && atoi(splitted_string[3]) > 0) {
-            set_physical_screen(atoi(splitted_string[2]),atoi(splitted_string[3]));
-          } 
+          if (atoi(splitted_string[2]) >= 0 && atoi(splitted_string[3]) >= 0) {
+            set_screen('p',atoi(splitted_string[2]),atoi(splitted_string[3]));
+          } else {
+            display_help(INVALID);
+          }
         } else if (compare(splitted_string[4],"-v")) {
-          if ((splitted_string[5] == 0 || *splitted_string[5] == '\0') && (splitted_string[6] == 0 || *splitted_string[6] == '\0')) {
+          if ((splitted_string[5] == 0 || *splitted_string[5] == '\0') || (splitted_string[6] == 0 || *splitted_string[6] == '\0')) {
             display_help(INVALID);
           } else {
             if (splitted_string[7] == 0 || *splitted_string[7] == '\0') {
               if (atoi(splitted_string[2]) >= 0 && atoi(splitted_string[3]) >= 0 && atoi(splitted_string[5]) >= 0 && atoi(splitted_string[6]) >= 0) {
-                framebf_init(atoi(splitted_string[5]),atoi(splitted_string[6]));
+                set_screen('p',atoi(splitted_string[2]),atoi(splitted_string[3]));
+                set_screen('v',atoi(splitted_string[5]),atoi(splitted_string[6]));
+              } else {
+                display_help(INVALID);
               }
             } 
           }
@@ -266,20 +281,25 @@ void handle_scrsize(char** splitted_string) {
         }
       }
     } else if (compare(splitted_string[1],"-v")) {
-      if ((splitted_string[2] == 0 || *splitted_string[2] == '\0') && (splitted_string[3] == 0 || *splitted_string[3] == '\0')) {
+      if ((splitted_string[2] == 0 || *splitted_string[2] == '\0') || (splitted_string[3] == 0 || *splitted_string[3] == '\0')) {
         display_help(INVALID);
       } else {
         if (splitted_string[4] == 0 || *splitted_string[4] == '\0') {
           if (atoi(splitted_string[2]) >= 0 && atoi(splitted_string[3]) >= 0) {
-            set_virtual_screen(atoi(splitted_string[2]),atoi(splitted_string[3]));
+            set_screen('v',atoi(splitted_string[2]),atoi(splitted_string[3]));
+          } else {
+            display_help(INVALID);
           }
         } else if (compare(splitted_string[4],"-p")) {
-          if ((splitted_string[5] == 0 || *splitted_string[5] == '\0') && (splitted_string[6] == 0 || *splitted_string[6] == '\0')) {
+          if ((splitted_string[5] == 0 || *splitted_string[5] == '\0') || (splitted_string[6] == 0 || *splitted_string[6] == '\0')) {
             display_help(INVALID);
           } else {
             if (splitted_string[7] == 0 || *splitted_string[7] == '\0') {
               if (atoi(splitted_string[2]) >= 0 && atoi(splitted_string[3]) >= 0 && atoi(splitted_string[5]) >= 0 && atoi(splitted_string[6]) >= 0) {
-                framebf_init(atoi(splitted_string[5]),atoi(splitted_string[6]));
+                set_screen('p',atoi(splitted_string[5]),atoi(splitted_string[6]));
+                set_screen('v',atoi(splitted_string[2]),atoi(splitted_string[3]));
+              } else {
+                display_help(INVALID);
               }
             } 
           }
@@ -423,8 +443,6 @@ void handle_uartclk(char** splitted_string) {
 }
 
 
-
-
 void main() {
   // set up serial console
   uart_init();
@@ -434,11 +452,17 @@ void main() {
   char *splitted_string[10];
 
   framebf_init(1024,768);
+  printf("\nTesting printf: %d%% %c %x %s %8.3f", 100, 'a', 15, "something", 3.14);
+  printf("\ntest1: %d", 22);
+  printf("\ntest2: %s", "hmm");
+  printf("\ntest3: %x", 12);
+  printf("\ntest4: %c", 'h');
+  printf("\ntest5: %9.2f", 3.45464);
+  printf("\ntest6: %.3f",3.45464);
+  printf("\ntest7: %8f",9.3444);
+  printf("\ntest7: %f",6.9);
+  printf("\n");
   display_banner();
-  printf("\nLucky day: %d%% %c %x %s %8.3f", 100, 'a', 15, "something", 3.14);
-  printf("\ntest: %d", 22);
-  printf("\nTEST: %s", "hmm");
-  uart_puts("\n~/");
   // echo everything back
   while (1) {
     //read each char
@@ -474,7 +498,7 @@ void main() {
       space_flag = 1;
       empty_string_array(splitted_string); 
       string[0] = '\0';
-      uart_puts("\n~/");
+      dispaly_home();
     } else if (c == SPACE) {
       if (space_flag == 0) {
         concat(string, c);
